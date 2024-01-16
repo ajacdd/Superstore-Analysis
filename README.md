@@ -40,13 +40,13 @@ The “people” table includes the following columns:
 -	region: Central, East, South, West
 
 ## Business Questions
-1.	What is the yearly total sales and year-over-year (YOY) % variance?
-2.	What is the total sales and average sales by category?
+1.	What is the yearly total sales, profit, and YOY % variance?
+2.	What is the total sales, average sales, and percent of total sales for each category?
 3.	Which subcategories have the highest and lowest total profit overall?
 4.	Which customer segments generated the most and least profits?
-5.	What is the top and bottom selling product in each segment (units sales)?
-6.	How many orders were placed each year?
-7.	What is the total dollar value of returned orders by region along with the associated regional sales person?
+5.	What is the top and bottom selling product in each segment (unit sales)?
+6.	How many orders were placed compared to orders returned each year?
+7.	What is the total sales, value of returned orders, and net sales by region along with the associated regional salesperson?
 8.	How many orders and items shipped 7+ days after the order date?
 
 ## Data Cleaning & Preparation
@@ -98,37 +98,41 @@ SET order_year = YEAR(order_date);
 ```
 
 ## Data Analysis
-1.	What is the yearly total sales and YOY % variance?
+1.	What is the yearly total sales, profit, and YOY percent variance?
 ```
-WITH yearly_rev AS 
-(SELECT order_year, SUM(sales) AS total_sales
-FROM superstore.orders
-GROUP BY 1
-ORDER BY 1)
+WITH yearly_totals AS 
+	(SELECT order_year, SUM(sales) AS total_sales, SUM(profit) AS total_profit
+	FROM superstore.orders
+	GROUP BY 1
+	ORDER BY 1)
 
-SELECT order_year, total_sales,
-	total_sales/LAG(total_sales) OVER(ORDER BY order_year) - 1 AS yoy_perc_var
-FROM yearly_rev;
+SELECT
+	order_year, total_sales, total_profit,
+	(total_sales/LAG(total_sales) OVER(ORDER BY order_year) - 1)*100 AS yoy_sales_perc_var,
+	(total_profit/LAG(total_profit) OVER(ORDER BY order_year) - 1)*100 AS yoy_profit_perc_var
+FROM yearly_totals;
 ```
-| order_year | total_sales | yoy_perc_var |
-|------------|-------------|--------------|
-| 2014       | 483966.19   |              |
-| 2015       | 470532.46   | -0.027758    |
-| 2016       | 609205.86   | 0.294716     |
-| 2017       | 733215.19   | 0.203559     |
+| order_year | total_sales | total_profit | yoy_sales_perc_var | yoy_profit_perc_var |
+|------------|-------------|--------------|--------------------|---------------------|
+| 2014       | 483966.19   | 49556.06     |                    |                     |
+| 2015       | 470532.46   | 61618.66     | -2.775758          | 24.341322           |
+| 2016       | 609205.86   | 81795.23     | 29.471591          | 32.744253           |
+| 2017       | 733215.19   | 93439.73     | 20.355899          | 14.23616            |
 
-2.	What is the total sales and average sales by category?
+2.	What is the total sales, average sales, and percent of total sales for each category?
 ```
-SELECT category, SUM(sales) AS total_sales, AVG(sales) AS avg_sales
+SELECT
+	category, SUM(sales) AS total_sales, AVG(sales) AS avg_sales,
+	SUM(sales)/(SELECT SUM(sales) FROM superstore.orders)*100 AS perc_of_total
 FROM superstore.orders
 GROUP BY 1
 ORDER BY 1;
 ```
-| category        | total_sales | avg_sales  |
-|-----------------|-------------|------------|
-| Furniture       | 741718.61   | 349.867269 |
-| Office Supplies | 719046.99   | 119.324094 |
-| Technology      | 836154.1    | 452.709312 |
+| category        | total_sales | avg_sales  | perc_of_total |
+|-----------------|-------------|------------|---------------|
+| Furniture       | 741718.61   | 349.867269 | 32.291882     |
+| Office Supplies | 719046.99   | 119.324094 | 31.304838     |
+| Technology      | 836154.1    | 452.709312 | 36.40328      |
 
 3.	Which subcategories have the highest and lowest total profit overall?
 ```
@@ -200,36 +204,43 @@ WHERE bottom_rank_items =1;
 | Consumer | OFF-LA-10002368 | Avery 479                                                    | 1           | 1                 |
 | ...      | [+130 more]     |                                                              |             |                   |
 
-6.	How many orders were placed each year?
+6.	How many orders were placed compared to orders returned each year?
 ```
-SELECT order_year, COUNT(DISTINCT order_id) AS num_orders
-FROM superstore.orders
+SELECT
+	order_year,
+    COUNT(DISTINCT o.order_id) AS num_orders_placed, 
+    COUNT(DISTINCT r.order_id) AS num_orders_returned,
+    COUNT(DISTINCT r.order_id)/COUNT(DISTINCT o.order_id)*100 AS perc_returned
+FROM superstore.orders o
+LEFT JOIN superstore.returns r ON o.order_id = r.order_id
 GROUP BY 1
 ORDER BY 1;
 ```
-| order_year | num_orders |
-|------------|------------|
-| 2014       | 969        |
-| 2015       | 1038       |
-| 2016       | 1315       |
-| 2017       | 1687       |
+| order_year | num_orders_placed | num_orders_returned | perc_retrurned |
+|------------|-------------------|---------------------|----------------|
+| 2014       | 969               | 53                  | 5.4696         |
+| 2015       | 1038              | 61                  | 5.8767         |
+| 2016       | 1315              | 77                  | 5.8555         |
+| 2017       | 1687              | 105                 | 6.2241         |
 
-7.	What is the total dollar value of returned orders by region along with the associated regional salesperson?
+7.	What is the total sales, value of returned orders, and net sales by region along with the associated regional salesperson?
 ```
-SELECT o.region, p.person, SUM(sales) as total_return_value
-FROM superstore.orders o
-LEFT JOIN superstore.returns r ON o.order_id = r.order_id
-LEFT JOIN superstore.people p ON o.region = p.region
-WHERE returned = 'Yes'
+SELECT
+	o.region, p.person, SUM(sales) AS total_sales,
+	SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS total_return_value,
+    	SUM(sales)-SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS net_sales
+FROM	superstore.orders o
+	LEFT JOIN superstore.returns r ON o.order_id = r.order_id
+	LEFT JOIN superstore.people p ON o.region = p.region
 GROUP BY 1, 2
-ORDER BY total_return_value DESC;
+ORDER BY net_sales DESC;
 ```
-| region  | person            | total_return_value |
-|---------|-------------------|--------------------|
-| West    | Anna Andreadi     | 107483.06          |
-| East    | Chuck Magee       | 41705.12           |
-| South   | Cassandra Brandow | 17309.13           |
-| Central | Kelly Williams    | 14006.99           |
+| region  | person            | total_sales | total_return_value | net_sales |
+|---------|-------------------|-------------|--------------------|-----------|
+| East    | Chuck Magee       | 678499.99   | 41705.12           | 636794.87 |
+| West    | Anna Andreadi     | 725457.93   | 107483.06          | 617974.87 |
+| Central | Kelly Williams    | 501239.88   | 14006.99           | 487232.89 |
+| South   | Cassandra Brandow | 391721.9    | 17309.13           | 374412.77 |
 
 8.	How many orders and items shipped 7+ days after the order date?
 ```
@@ -244,5 +255,3 @@ WHERE lead_time >= 7;
 | num_orders | num_items |
 |------------|-----------|
 | 308        | 621       |
-
-## Summary
