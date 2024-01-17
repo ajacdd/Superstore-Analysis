@@ -242,5 +242,7 @@ WHERE order_to_ship_time >= 7;
 | 5009         | 308             | 6.1489           |
 
 ## Data Visualization
-As a complement to this project, I created a [Superstore Sales Dashboard](https://public.tableau.com/shared/93R2924XN?:display_count=n&:origin=viz_share_link) in Tableau. This dashboard provides a graphical representation of the key metrics most important to stakeholders at Superstore.
+As a complement to this project, I created a [Superstore Sales Dashboard in Tableau Public linked here](https://public.tableau.com/views/SuperstoreSalesOverviewDashboard_17055191173420/SuperstoreSalesDashboard?:language=en-US&:display_count=n&:origin=viz_share_link). This dashboard provides a graphical representation of the key metrics most important to stakeholders at Superstore.
+
+![image of Superstore Sales Overview Dashboard](https://github.com/ajacdd/Superstore-Analysis/blob/main/Superstore%20Sales%20Dashboard.png)
 
