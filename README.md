@@ -6,7 +6,7 @@
 Superstore is a U.S. based small retail business that sells furniture, office supplies, and technology products. Their customer segments are mass Consumers, Corporate, and Home Offices. The project aims to provide a thorough analysis of Superstore sales performance and trends to reveal key insights that can be used to guide data-driven decision-making. Using a detailed dataset, the project explores multiple facets of the business, including sales trends, product popularity, regional market performance, and more. This report highlights key metrics, analyzes category and product performance, examines regional sales trends, and offers strategic insights and recommendations to optimize sales and maintain a competitive edge in the industry.
 
 ## Requirements
-The Superset dataset used in this project was obtained from Tableau and converted from a XSLX file to a CSV file for easier handling. The analysis was performed using MySQL and complemented using Tableau to create an interactive dashboard for data visualization.
+The Superset dataset used in this project was obtained from Tableau and converted from an XSLX file to a CSV file for easier handling. The analysis was performed using MySQL and complemented using Tableau to create an interactive dashboard for data visualization.
 
 The dataset contains 3 tables: orders, returns, and people. The “orders” table includes the following columns:
 -	row_id: unique ID of each row
@@ -134,7 +134,7 @@ ORDER BY 2 DESC;
 | Furniture       | 741718.61   | 349.867269 | 32.291882     |
 | Office Supplies | 719046.99   | 119.324094 | 31.304838     |
 
-3.	The most profitable subcategory is Copiers generating total profits of $55.6K. The least profitable category is Tables which has a total profit loss of -$17.7K. The Tables category is negatively contributing to Superstore's overall profitability and should be investigated as a potential category to exit if profitability cannot be improved through more favorable cost structures.
+3.	The most profitable subcategory is Copiers generating total profits of $55.6K. The least profitable subcategory is Tables which has a total profit loss of -$17.7K. The Tables subcategory is negatively contributing to Superstore's overall profitability and should be investigated as a potential subcategory to exit if profitability cannot be improved through more favorable cost structures.
 ```
 (
 	SELECT subcategory, SUM(profit) AS total_profit
@@ -205,24 +205,25 @@ ORDER BY 1;
 | 2016       | 1315              | 77                  | 5.8555         |
 | 2017       | 1687              | 105                 | 6.2241         |
 
-7.	East Regional Sales Manager, Chuck Magee, achieved the highest net sales after returns ($636.8K). While West Regional Sales Manager, Anna Andreadi, is #1 in gross sales, she also has the most returned orders ($107.5K). 
+7.	East Regional Sales Manager, Chuck Magee, achieved the highest net sales after returns ($636.8K). While West Regional Sales Manager, Anna Andreadi, is #1 in gross sales, she also has the most returned orders ($107.5K) accounting for 14.8% of her total sales. 
 ```
 SELECT
 	o.region, p.person, SUM(sales) AS total_sales,
 	SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS total_return_value,
-    	SUM(sales)-SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS net_sales
-FROM	superstore.orders o
-	LEFT JOIN superstore.returns r ON o.order_id = r.order_id
-	LEFT JOIN superstore.people p ON o.region = p.region
+    SUM(sales)-SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS net_sales,
+    SUM(CASE WHEN r.returned = 'Yes' THEN sales END)/SUM(sales)*100 AS percent_of_total_sales_returned
+FROM superstore.orders o
+LEFT JOIN superstore.returns r ON o.order_id = r.order_id
+LEFT JOIN superstore.people p ON o.region = p.region
 GROUP BY 1, 2
 ORDER BY net_sales DESC;
 ```
-| region  | person            | total_sales | total_return_value | net_sales |
-|---------|-------------------|-------------|--------------------|-----------|
-| East    | Chuck Magee       | 678499.99   | 41705.12           | 636794.87 |
-| West    | Anna Andreadi     | 725457.93   | 107483.06          | 617974.87 |
-| Central | Kelly Williams    | 501239.88   | 14006.99           | 487232.89 |
-| South   | Cassandra Brandow | 391721.9    | 17309.13           | 374412.77 |
+| region  | person            | total_sales | total_return_value | net_sales | percent_of_total_sales_returned |
+|---------|-------------------|-------------|--------------------|-----------|---------------------------------|
+| East    | Chuck Magee       | 678499.99   | 41705.12           | 636794.87 | 6.146665                        |
+| West    | Anna Andreadi     | 725457.93   | 107483.06          | 617974.87 | 14.815892                       |
+| Central | Kelly Williams    | 501239.88   | 14006.99           | 487232.89 | 2.794468                        |
+| South   | Cassandra Brandow | 391721.9    | 17309.13           | 374412.77 | 4.418729                        |
 
 8.	Shipping and delivering orders on time is essential to a thriving business. When shipments are late, customers are much less likely to continue purchasing orders and may switch to a competitor that can guarantee timely deliveries. At Superstore, 6% of orders left the warehouse 7+ days after the original order was placed. Shipping this late doesn't create a positive customer experience. A deeper root cause analysis should be performed to uncover contributing factors such as inventory in-stock levels, labor shortage, or other reasons.
 ```
