@@ -143,7 +143,8 @@ ORDER BY 1;
 SELECT
 	o.region, p.person, SUM(sales) AS total_sales,
 	SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS total_return_value,
-    SUM(sales)-SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS net_sales
+    SUM(sales)-SUM(CASE WHEN r.returned = 'Yes' THEN sales END) AS net_sales,
+    SUM(CASE WHEN r.returned = 'Yes' THEN sales END)/SUM(sales)*100 AS percent_of_total_sales_returned
 FROM superstore.orders o
 LEFT JOIN superstore.returns r ON o.order_id = r.order_id
 LEFT JOIN superstore.people p ON o.region = p.region
