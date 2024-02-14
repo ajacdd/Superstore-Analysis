@@ -198,7 +198,7 @@ LEFT JOIN superstore.returns r ON o.order_id = r.order_id
 GROUP BY 1
 ORDER BY 1;
 ```
-| order_year | num_orders_placed | num_orders_returned | perc_retrurned |
+| order_year | num_orders_placed | num_orders_returned | perc_returned |
 |------------|-------------------|---------------------|----------------|
 | 2014       | 969               | 53                  | 5.4696         |
 | 2015       | 1038              | 61                  | 5.8767         |
